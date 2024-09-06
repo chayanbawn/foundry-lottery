@@ -9,14 +9,11 @@ pragma solidity 0.8.26;
  * @dev Implements Chainlink VRFv2.5
  */
 contract Raffle {
-    /** Errors*/
-
+    /* Errors */
     error Raffle__SendMoreToEnterRaffle();
 
     uint256 private immutable i_entranceFee;
-    /**
-     * @dev The Duration of the lottery in seconds
-     */ 
+    /* @dev The Duration of the lottery in seconds */
     uint256 private immutable i_interval;
     address payable[] private s_players;
     uint256 private s_lastTimeStamp;
@@ -32,14 +29,13 @@ contract Raffle {
     }
 
     function enterRaffle() external payable {
-
         // Gas inefficient
-        // require(msg.value >= i_entranceFee, "Send More To Enter Raffle"); 
+        // require(msg.value >= i_entranceFee, "Send More To Enter Raffle");
 
         // require solidty verion >= 0.8.26
-        // require(msg.value >= i_entranceFee, SendMoreToEnterRaffle());  
+        // require(msg.value >= i_entranceFee, SendMoreToEnterRaffle());
 
-        if(msg.value < i_entranceFee){
+        if (msg.value < i_entranceFee) {
             revert Raffle__SendMoreToEnterRaffle();
         }
 
@@ -49,15 +45,13 @@ contract Raffle {
         emit RaffleEntered(msg.sender);
     }
 
-
     // 1. Get a random number
     // 2. Use random number to pick a player
     // 3. Be automatically call
     function pickWinner() external {
-
-        if((block.timestamp - s_lastTimeStamp) < i_interval) {
-            revert(); 
-        } 
+        if ((block.timestamp - s_lastTimeStamp) < i_interval) {
+            revert();
+        }
     }
 
     /**
