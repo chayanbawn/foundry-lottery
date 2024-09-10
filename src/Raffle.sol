@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.26;
+pragma solidity 0.8.19;
 
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
@@ -17,6 +17,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     error Raffle__TransferFailed();
     error Raffle__RaffleHasNotEndedYet();
     error Raffle__RaffleNotOpen();
+    error Raffle__UpKeepNotNeeded(uint256 balance, uint256 playersLength, uint256 raffleState);
 
     /* Type Declarations */
     enum RaffleState {
@@ -79,12 +80,28 @@ contract Raffle is VRFConsumerBaseV2Plus {
         emit RaffleEntered(msg.sender);
     }
 
+    function checkUpkeep(bytes memory /* checkData */ )
+        public
+        view
+        returns (bool upkeepNeeded, bytes memory /* performData */ )
+    {
+        bool TimeHasPassed = (block.timestamp - s_lastTimeStamp) >= i_interval;
+        bool IsOpen = s_raffleState == RaffleState.OPEN;
+        bool HasBalance = address(this).balance > 0;
+        bool HasPlayers = s_players.length > 0;
+
+        upkeepNeeded = TimeHasPassed && IsOpen && HasBalance && HasPlayers;
+
+        return (upkeepNeeded, "");
+    }
+
     // 1. Get a random number
     // 2. Use random number to pick a player
     // 3. Be automatically call
-    function pickWinner() external {
-        if ((block.timestamp - s_lastTimeStamp) < i_interval) {
-            revert Raffle__RaffleHasNotEndedYet();
+    function performUpkeep(bytes calldata /* performData */ ) external {
+        (bool upkeepNeeded,) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle__UpKeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
         }
 
         s_raffleState = RaffleState.CALCULATING_WINNER;
@@ -102,11 +119,12 @@ contract Raffle is VRFConsumerBaseV2Plus {
         });
 
         // Request a random from chainlink
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(requestParams);
+        /* uint256 requestId = */
+        s_vrfCoordinator.requestRandomWords(requestParams);
     }
 
     // CEI: Checks, Effects, Interactions Pattern
-    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
+    function fulfillRandomWords(uint256, /*requestId*/ uint256[] calldata randomWords) internal override {
         //Checks (Conditinals/Requirements)
 
         // Effects (Contracts Internal State Changes)
